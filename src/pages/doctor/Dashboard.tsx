@@ -48,19 +48,23 @@ export default function DoctorDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await axios.get('/doctor/appointments');
       const appointmentsRaw = res.data.appointments || [];
+      
+      // ✅ FIX: Correctly map the populated data from the backend
       const normalized = appointmentsRaw.map((a: any) => ({
-        id: a.id,
+        id: a._id, // Use Mongoose _id
         status: a.status,
-        patient: a.patient,
-        date: a.date,
-        time: a.slot
+        patient: a.userId ? a.userId.name : 'Unknown Patient', // Access populated userId.name
+        date: new Date(a.date).toISOString().split('T')[0], // Standardize date format
+        time: a.slot,
+        type: a.userId ? `Patient Email: ${a.userId.email}` : 'No email' // Example of using other populated data
       }));
+      
       setFilteredAppointments(normalized);
     } catch (err: any) {
       if (err.response?.data?.message === "No appointments found for this doctor.") {
@@ -108,9 +112,6 @@ const saveAvailability = async () => {
 
     // This is correct
     const formattedDate = selectedDate.toISOString().split('T')[0];
-
-    // ❌ REMOVE THE 'formattedSlots' MAPPING LOGIC.
-    // The 'selectedSlots' array is already the array of strings your backend needs.
 
     try {
       // ✅ FIX 1: Change the API endpoint
