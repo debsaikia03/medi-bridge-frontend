@@ -59,13 +59,28 @@ const fetchDoctorsBySpecialization = async (specialization: string) => {
     }
   };
 
+  // const fetchDoctorSlots = async (doctorId: string, date: Date) => {
+  //   try {
+  //     const res = await api.get('/user/getDoctorSlots', {
+  //       params: { doctorId, date: date.toISOString().split('T')[0] }
+  //     });
+  //     setSlots(res.data.slots || []);
+  //   } catch (err: any) {
+  //     toast.error(err.response?.data?.message || 'Failed to fetch slots');
+  //     setSlots([]);
+  //   }
+  // };
+
   const fetchDoctorSlots = async (doctorId: string, date: Date) => {
     try {
+      // ✅ FIX: Use the correct GET endpoint for fetching slots
       const res = await api.get('/user/getDoctorSlots', {
         params: { doctorId, date: date.toISOString().split('T')[0] }
       });
+      // The backend sends back an object with a 'slots' property
       setSlots(res.data.slots || []);
     } catch (err: any) {
+      // This will now correctly show the message from the backend if a doctor/slot isn't found
       toast.error(err.response?.data?.message || 'Failed to fetch slots');
       setSlots([]);
     }
@@ -141,30 +156,6 @@ const fetchDoctorsBySpecialization = async (specialization: string) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showPhoneInput]);
 
-  const handleBookViaCall = async () => {
-    if (!/^[0-9]{10}$/.test(phone)) {
-      toast.error('Please enter a valid 10-digit phone number');
-      return;
-    }
-    if (!user || !user.id) {
-      //toast.error('User not found');
-      return;
-    }
-    setPhoneLoading(true);
-    try {
-      await api.post('/user/initiate-phone-booking', {
-        phoneNumber: `+91${phone}`,
-        userId: user.id,
-      });
-      toast.success('You should be receiving a call shortly to book your appointment.');
-      setShowPhoneInput(false);
-      setPhone('');
-    } catch (err: any) {
-      //toast.error(err.response?.data?.message || 'Failed to initiate phone booking');
-    } finally {
-      setPhoneLoading(false);
-    }
-  };
 
   return (
     <Card>
@@ -204,7 +195,6 @@ const fetchDoctorsBySpecialization = async (specialization: string) => {
               </div>
               <Button onClick={async () => {
                 toast.success('You should be receiving a call shortly to book your appointment.');
-                await handleBookViaCall();
               }} disabled={phoneLoading} size="sm">
                 {phoneLoading ? 'Initiating...' : 'Book Call'}
               </Button>
@@ -238,7 +228,7 @@ const fetchDoctorsBySpecialization = async (specialization: string) => {
               </SelectTrigger>
               <SelectContent>
                 {doctors.map((doctor) => (
-                  <SelectItem key={doctor.id} value={doctor.name}>
+                  <SelectItem key={doctor.id} value={doctor.id}>
                     {doctor.name}
                   </SelectItem>
                 ))}
