@@ -354,4 +354,4 @@ function CommentBox({ onComment, compact = false }: { onComment: (comment: strin
 
 // To enable code-splitting, import this component using React.lazy in your main app/router:
 // const CommunityForum = React.lazy(() => import('./components/dashboard/CommunityForum'));
-// <Suspense fallback={<div>Loading...</div>}><CommunityForum /></Suspense> 
+// <Suspense fallback={<div>Loading...</div>}><CommunityForum /></Suspense> */

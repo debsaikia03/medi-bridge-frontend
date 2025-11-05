@@ -67,9 +67,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <Button variant="ghost" asChild>
             <Link to="/food-info">Food Info</Link>
             </Button>
-            <Button variant="ghost" asChild>
+            {/* <Button variant="ghost" asChild>
               <Link to="/community-forum">Community Forum</Link>
-            </Button>
+            </Button> */}
           </>
         );
     }
