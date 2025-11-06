@@ -39,6 +39,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <Button variant="ghost" asChild>
               <Link to="/admin/doctors">Doctors</Link>
             </Button>
+            <Button variant="ghost" asChild>
+              <Link to="/community-forum">Community Forum</Link>
+            </Button>
           </>
         );
       case 'doctor':
@@ -52,6 +55,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </Button>
             <Button variant="ghost" asChild>
               <Link to="/doctor/appointments">Appointments</Link>
+            </Button>
+            {/* ✅ I've added this link for the doctor role */}
+            <Button variant="ghost" asChild>
+              <Link to="/community-forum">Community Forum</Link>
             </Button>
           </>
         );
@@ -67,9 +74,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <Button variant="ghost" asChild>
             <Link to="/food-info">Food Info</Link>
             </Button>
-            {/* <Button variant="ghost" asChild>
+            <Button variant="ghost" asChild>
               <Link to="/community-forum">Community Forum</Link>
-            </Button> */}
+            </Button>
           </>
         );
     }
@@ -161,4 +168,4 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <main id="main-content" className="min-h-[calc(100vh-3.5rem)]">{children}</main>
     </div>
   );
-} 
+}

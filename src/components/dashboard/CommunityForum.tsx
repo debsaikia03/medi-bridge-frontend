@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../lib/axios';
+import { toast } from 'sonner';
 
 // Avatar fallback for initials
 function Avatar({ name }: { name: string }) {
@@ -14,86 +16,52 @@ function Avatar({ name }: { name: string }) {
   );
 }
 
+// Interfaces updated to match backend models
 interface User {
-  id: string | number;
+  _id: string; 
+  id: string | number; 
   name: string;
-  role: string;
+  role: string; 
   specialization?: string;
 }
 
 interface Comment {
-  id: string;
+  _id: string; 
+  id: string; 
   author: User;
+  authorType: 'User' | 'Doctor'; 
   content: string;
   createdAt: Date;
   replies?: Comment[];
 }
 
 interface Post {
-  id: string;
+  _id: string; 
+  id: string; 
   author: User;
+  authorType: 'User' | 'Doctor'; 
   content: string;
   comments: Comment[];
   createdAt: Date;
-  imageUrl?: string;
+  imageUrl?: string; // ✅ ADD THIS FIELD
 }
 
 function formatTime(date: Date) {
+  const d = new Date(date);
   const now = new Date();
-  if (
-    date.getDate() === now.getDate() &&
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear()
-  ) {
-    // Show time ago
-    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
-    if (diff < 60) return `${diff} seconds ago`;
-    if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
-    return `${Math.floor(diff / 3600)} hours ago`;
-  }
-  // Show date
-  return date.toLocaleDateString();
-}
+  
+  const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
+  if (diff < 60) return `${diff} seconds ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
 
-const mockPosts: Post[] = [
-  {
-    id: '1',
-    author: { id: 'u1', name: 'Alice', role: 'user' },
-    content: 'What are some good tips for managing stress?',
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-    imageUrl: '',
-    comments: [
-      {
-        id: 'c1',
-        author: { id: 'd1', name: 'Dr. Smith', role: 'doctor', specialization: 'Psychiatry' },
-        content: 'Regular exercise and mindfulness can help a lot!',
-        createdAt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
-        replies: [
-          {
-            id: 'c1r1',
-            author: { id: 'u2', name: 'Bob', role: 'user' },
-            content: 'Thanks, Dr. Smith! Any recommended mindfulness apps?',
-            createdAt: new Date(Date.now() - 30 * 60 * 1000), // 30 min ago
-            replies: []
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: '2',
-    author: { id: 'd2', name: 'Dr. Lee', role: 'doctor', specialization: 'Nutrition' },
-    content: 'Remember to stay hydrated and eat a balanced diet.',
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-    imageUrl: '',
-    comments: []
-  }
-];
+  return d.toLocaleDateString();
+}
 
 // Recursive function to add a reply to a comment by id
 function addReplyToComment(comments: Comment[], commentId: string, reply: Comment): Comment[] {
   return comments.map(comment => {
-    if (comment.id === commentId) {
+    if (comment._id === commentId) {
       return { ...comment, replies: [...(comment.replies || []), reply] };
     } else if (comment.replies && comment.replies.length > 0) {
       return { ...comment, replies: addReplyToComment(comment.replies, commentId, reply) };
@@ -105,75 +73,99 @@ function addReplyToComment(comments: Comment[], commentId: string, reply: Commen
 
 export default function CommunityForum() {
   const { user } = useAuth();
-  const [posts, setPosts] = useState<Post[]>(mockPosts);
+  const [posts, setPosts] = useState<Post[]>([]); 
   const [newPost, setNewPost] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null); // ✅ ADD STATE FOR THE FILE
   const [modalImage, setModalImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true); 
+
+  const fetchPosts = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/forum/posts');
+      const fetchedPosts = res.data.map((post: any) => ({
+        ...post,
+        id: post._id, 
+        comments: post.comments.map((comment: any) => mapCommentIds(comment))
+      }));
+      setPosts(fetchedPosts);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to fetch posts");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const mapCommentIds = (comment: any): Comment => ({
+    ...comment,
+    id: comment._id,
+    replies: comment.replies ? comment.replies.map(mapCommentIds) : []
+  });
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setImagePreview(URL.createObjectURL(file));
+      setImageFile(file); // ✅ STORE THE ACTUAL FILE
     }
   };
 
   const handleRemoveImage = () => {
     setImagePreview(null);
+    setImageFile(null); // ✅ CLEAR THE FILE
   };
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (!newPost.trim() || !user) return;
-    const post: Post = {
-      id: Date.now().toString(),
-      author: user,
-      content: newPost.trim(),
-      comments: [],
-      createdAt: new Date(),
-      imageUrl: imagePreview || '',
-    };
-    setPosts([post, ...posts]);
-    setNewPost('');
-    setImagePreview(null);
-  };
+    
+    // ✅ CREATE FORMDATA
+    const formData = new FormData();
+    formData.append('content', newPost.trim());
+    if (imageFile) {
+      formData.append('image', imageFile); // "image" must match upload.single("image")
+    }
 
-  const handleComment = (postId: string, comment: string, parentCommentId?: string) => {
-    if (!comment.trim() || !user) return;
-    setPosts(posts =>
-      posts.map(post => {
-        if (post.id !== postId) return post;
-        if (!parentCommentId) {
-          // Add as a top-level comment
-          return {
-            ...post,
-            comments: [
-              ...post.comments,
-              {
-                id: Date.now().toString(),
-                author: user,
-                content: comment.trim(),
-                createdAt: new Date(),
-                replies: []
-              }
-            ]
-          };
-        } else {
-          // Add as a reply to a comment
-          return {
-            ...post,
-            comments: addReplyToComment(post.comments, parentCommentId, {
-              id: Date.now().toString(),
-              author: user,
-              content: comment.trim(),
-              createdAt: new Date(),
-              replies: []
-            })
-          };
+    try {
+      // ✅ SEND FORMDATA
+      const res = await api.post('/forum/posts', formData, {
+        headers: {
+          // Let browser set the content-type for multipart/form-data
+          'Content-Type': undefined, 
         }
-      })
-    );
+      });
+      
+      setPosts([res.data, ...posts]);
+      setNewPost('');
+      setImagePreview(null);
+      setImageFile(null); // ✅ CLEAR FILE
+      toast.success("Post created!");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to create post");
+    }
   };
 
-  // Enhanced recursive comment rendering with better UI
+  const handleComment = async (postId: string, comment: string, parentCommentId?: string) => {
+    if (!comment.trim() || !user) return;
+
+    try {
+      await api.post(`/forum/posts/${postId}/comments`, {
+        content: comment.trim(),
+        parentCommentId: parentCommentId || null
+      });
+      fetchPosts();
+      toast.success("Reply posted!");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to post reply");
+    }
+  };
+
+  // ... (CommentThread function remains the same as previous fix) ...
+    // Recursive function to render comments
   function CommentThread({ comments, postId, level = 0, onReply }: {
     comments: Comment[];
     postId: string;
@@ -184,22 +176,22 @@ export default function CommunityForum() {
     return (
       <div className={level > 0 ? `pl-4 border-l-2 border-muted/30 ml-2` : ""} aria-live={level === 0 ? 'polite' : undefined}>
         {comments.map((comment, idx) => (
-          <div key={comment.id} className={`flex items-start gap-2 rounded p-2 mt-2 ${level === 0 ? 'bg-muted/40 shadow-sm mb-2' : 'bg-muted/20'} ${level > 0 ? 'mt-1' : ''}`}
+          <div key={comment._id} className={`flex items-start gap-2 rounded p-2 mt-2 ${level === 0 ? 'bg-muted/40 shadow-sm mb-2' : 'bg-muted/20'} ${level > 0 ? 'mt-1' : ''}`}
             style={{ marginBottom: level === 0 && idx < comments.length - 1 ? 12 : 0 }}>
             <div className={level > 0 ? "w-6 h-6" : "w-8 h-8"}>
               <Avatar name={comment.author.name} />
             </div>
             <div className="flex-1">
-              <span className={`font-semibold ${comment.author.role === 'doctor' ? 'text-blue-400' : 'text-gray-400'}`}>{comment.author.role === 'doctor' ? `Dr. ${comment.author.name}` : comment.author.name}</span>
+              <span className={`font-semibold ${comment.authorType === 'Doctor' ? 'text-blue-400' : 'text-gray-400'}`}>{comment.authorType === 'Doctor' ? `Dr. ${comment.author.name}` : comment.author.name}</span>
               <span className="ml-2 text-xs text-muted-foreground font-light">{formatTime(comment.createdAt)}</span>
-              <div className="text-xs text-muted-foreground font-light ml-1 inline">{comment.author.role === 'doctor' ? '(Doctor)' : '(User)'}</div>
+              <div className="text-xs text-muted-foreground font-light ml-1 inline">{comment.authorType === 'Doctor' ? `(${comment.author.specialization || 'Doctor'})` : '(User)'}</div>
               <div className="text-sm mt-1 mb-1 whitespace-pre-line">{comment.content}</div>
-              <Button size="sm" variant="ghost" className="px-2 py-0 text-xs hover:bg-muted/40 transition-colors" onClick={() => setReplyingTo(comment.id)} aria-label="Reply to comment">
+              <Button size="sm" variant="ghost" className="px-2 py-0 text-xs hover:bg-muted/40 transition-colors" onClick={() => setReplyingTo(comment._id)} aria-label="Reply to comment">
                 Reply
               </Button>
-              {replyingTo === comment.id && (
+              {replyingTo === comment._id && (
                 <div className="mt-2">
-                  <CommentBox onComment={c => { onReply(postId, c, comment.id); setReplyingTo(null); }} compact />
+                  <CommentBox onComment={c => { onReply(postId, c, comment._id); setReplyingTo(null); }} compact />
                 </div>
               )}
               {Array.isArray(comment.replies) && comment.replies.length > 0 && (
@@ -212,9 +204,9 @@ export default function CommunityForum() {
     );
   }
 
-  // Helper to format doctor name only once
-  function formatAuthorName(author: User) {
-    if (author.role === 'doctor') {
+  // Helper to format author name
+  function formatAuthorName(author: User, authorType: string) {
+    if (authorType === 'Doctor') {
       return author.name.startsWith('Dr.') ? author.name + (author.specialization ? ` (${author.specialization})` : '') : `Dr. ${author.name}${author.specialization ? ` (${author.specialization})` : ''}`;
     }
     return author.name;
@@ -254,15 +246,19 @@ export default function CommunityForum() {
                 <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                 Add Photo
               </label>
-              <Button onClick={handlePost} disabled={!newPost.trim() && !imagePreview} className="font-semibold px-8 py-2 text-base rounded-full ml-auto">Post</Button>
+              {/* ✅ DISABLE BUTTON if no text AND no image */}
+              <Button onClick={handlePost} disabled={!newPost.trim() && !imageFile} className="font-semibold px-8 py-2 text-base rounded-full ml-auto">Post</Button>
             </div>
           </div>
         </div>
+        
         {/* Feed of posts */}
         <div className="space-y-10">
-          {posts.length === 0 && <div className="text-muted-foreground text-center">No posts yet. Be the first to post!</div>}
+          {loading && <div className="text-muted-foreground text-center">Loading posts...</div>}
+          {!loading && posts.length === 0 && <div className="text-muted-foreground text-center">No posts yet. Be the first to post!</div>}
+          
           {posts.map((post, idx) => (
-            <div key={post.id}>
+            <div key={post._id}>
               <Card className="bg-background/95 shadow-lg rounded-2xl border border-muted/40 hover:shadow-2xl transition-shadow duration-200 group">
                 <div className="flex flex-row items-start gap-4 p-4 pb-0">
                   <div className="w-12 h-12 shrink-0 flex items-center justify-center">
@@ -270,11 +266,13 @@ export default function CommunityForum() {
                   </div>
                   <div className="flex-1">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                      <span className={`font-semibold text-lg sm:text-xl ${post.author.role === 'doctor' ? 'text-blue-400' : 'text-gray-300'}`}>{formatAuthorName(post.author)}</span>
-                      <span className="text-xs text-muted-foreground font-light">({post.author.role.charAt(0).toUpperCase() + post.author.role.slice(1)})</span>
+                      <span className={`font-semibold text-lg sm:text-xl ${post.authorType === 'Doctor' ? 'text-blue-400' : 'text-gray-300'}`}>{formatAuthorName(post.author, post.authorType)}</span>
+                      <span className="text-xs text-muted-foreground font-light">({post.authorType})</span>
                       <span className="text-xs text-muted-foreground font-light">{formatTime(post.createdAt)}</span>
                     </div>
                     <div className="mt-2 mb-3 text-base sm:text-lg font-medium whitespace-pre-line">{post.content}</div>
+                    
+                    {/* ✅ DISPLAY THE IMAGE */}
                     {post.imageUrl && (
                       <div className="mb-2 flex flex-col items-center">
                         <img
@@ -290,9 +288,9 @@ export default function CommunityForum() {
                   </div>
                 </div>
                 <CardContent className="pt-2 pb-4 px-4">
-                  <CommentThread comments={post.comments} postId={post.id} onReply={handleComment} />
+                  <CommentThread comments={post.comments} postId={post._id} onReply={handleComment} />
                   <div className="mt-4">
-                    <CommentBox onComment={comment => handleComment(post.id, comment)} />
+                    <CommentBox onComment={comment => handleComment(post._id, comment)} />
                   </div>
                 </CardContent>
               </Card>
@@ -300,6 +298,7 @@ export default function CommunityForum() {
             </div>
           ))}
         </div>
+        
         {/* Modal for full image */}
         {modalImage && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setModalImage(null)}>
@@ -314,6 +313,7 @@ export default function CommunityForum() {
   );
 }
 
+// ... (CommentBox function remains the same as previous fix) ...
 function CommentBox({ onComment, compact = false }: { onComment: (comment: string) => void, compact?: boolean }) {
   const [comment, setComment] = useState('');
   return (
@@ -351,7 +351,3 @@ function CommentBox({ onComment, compact = false }: { onComment: (comment: strin
     </div>
   );
 }
-
-// To enable code-splitting, import this component using React.lazy in your main app/router:
-// const CommunityForum = React.lazy(() => import('./components/dashboard/CommunityForum'));
-// <Suspense fallback={<div>Loading...</div>}><CommunityForum /></Suspense> */

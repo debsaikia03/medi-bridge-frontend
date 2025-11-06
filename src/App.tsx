@@ -44,16 +44,19 @@ function App() {
                 <Route path="/mental-health/community" element={<Community />} />
                 <Route path="/mental-health/assessment" element={<Assessment />} />
                 <Route path="/food-info" element={<FoodInfo />} />
+                {/* ✅ FIX: Uncommented this route */}
                 <Route path="/community-forum" element={<CommunityForum />} />
               </Route>
 
               <Route element={<ProtectedRoute role="doctor" />}>
                 <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+                {/* ✅ FIX: Uncommented this route */}
                 <Route path="/community-forum" element={<CommunityForum />} />
               </Route>
 
               <Route element={<ProtectedRoute role="admin" />}>
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                {/* ✅ FIX: Uncommented this route */}
                 <Route path="/community-forum" element={<CommunityForum />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
