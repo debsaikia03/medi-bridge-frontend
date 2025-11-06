@@ -6,6 +6,7 @@ import { Textarea } from '../ui/textarea';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/axios';
 import { toast } from 'sonner';
+import axios from 'axios'; // <-- ADD THIS LINE
 
 // Avatar fallback for initials
 function Avatar({ name }: { name: string }) {
@@ -58,18 +59,6 @@ function formatTime(date: Date) {
   return d.toLocaleDateString();
 }
 
-// Recursive function to add a reply to a comment by id
-function addReplyToComment(comments: Comment[], commentId: string, reply: Comment): Comment[] {
-  return comments.map(comment => {
-    if (comment._id === commentId) {
-      return { ...comment, replies: [...(comment.replies || []), reply] };
-    } else if (comment.replies && comment.replies.length > 0) {
-      return { ...comment, replies: addReplyToComment(comment.replies, commentId, reply) };
-    } else {
-      return comment;
-    }
-  });
-}
 
 export default function CommunityForum() {
   const { user } = useAuth();
@@ -120,7 +109,7 @@ export default function CommunityForum() {
     setImageFile(null); // ✅ CLEAR THE FILE
   };
 
-  const handlePost = async () => {
+const handlePost = async () => {
     if (!newPost.trim() || !user) return;
     
     // ✅ CREATE FORMDATA
@@ -145,11 +134,36 @@ export default function CommunityForum() {
       setImageFile(null); // ✅ CLEAR FILE
       toast.success("Post created!");
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to create post");
+      // --- START OF FIX ---
+      let displayMessage = "Failed to create post. Please try again.";
+      
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        const rawMessage = error.response.data.message;
+        
+        if (typeof rawMessage === 'string') {
+          displayMessage = rawMessage;
+        } else if (Array.isArray(rawMessage)) {
+          // Handle array of errors (e.g., from validation)
+          displayMessage = rawMessage.join(', ');
+        } else if (typeof rawMessage === 'object' && rawMessage !== null) {
+          // Handle nested error object
+          const firstError = Object.values(rawMessage).find(val => Array.isArray(val) && val.length > 0);
+          if (Array.isArray(firstError) && typeof firstError[0] === 'string') {
+            displayMessage = firstError[0];
+          } else {
+            displayMessage = "An unexpected error object was received.";
+          }
+        }
+      } else if (error instanceof Error) {
+        displayMessage = error.message;
+      }
+      
+      toast.error(displayMessage);
+      // --- END OF FIX ---
     }
   };
 
-  const handleComment = async (postId: string, comment: string, parentCommentId?: string) => {
+const handleComment = async (postId: string, comment: string, parentCommentId?: string) => {
     if (!comment.trim() || !user) return;
 
     try {
@@ -160,7 +174,30 @@ export default function CommunityForum() {
       fetchPosts();
       toast.success("Reply posted!");
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to post reply");
+      // --- START OF FIX ---
+      let displayMessage = "Failed to post reply. Please try again.";
+      
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        const rawMessage = error.response.data.message;
+        
+        if (typeof rawMessage === 'string') {
+          displayMessage = rawMessage;
+        } else if (Array.isArray(rawMessage)) {
+          displayMessage = rawMessage.join(', ');
+        } else if (typeof rawMessage === 'object' && rawMessage !== null) {
+          const firstError = Object.values(rawMessage).find(val => Array.isArray(val) && val.length > 0);
+          if (Array.isArray(firstError) && typeof firstError[0] === 'string') {
+            displayMessage = firstError[0];
+          } else {
+            displayMessage = "An unexpected error object was received.";
+          }
+        }
+      } else if (error instanceof Error) {
+        displayMessage = error.message;
+      }
+      
+      toast.error(displayMessage);
+      // --- END OF FIX ---
     }
   };
 
