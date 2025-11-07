@@ -17,12 +17,10 @@ import {
 import { Label } from "../ui/label";
 import { Button } from "../ui/button";
 import { DatePicker } from "../ui/date-picker";
-import { Clock, Phone } from "lucide-react";
+import { Clock } from "lucide-react";
 import { addDays } from "date-fns";
 import { toast } from "sonner";
 import api from "../../lib/axios";
-import { useAuth } from "../../contexts/AuthContext";
-import { Input } from "../ui/input";
 
 interface Doctor {
   _id: string; // <-- Change this from 'id'
@@ -48,10 +46,7 @@ export default function BookAppointment() {
     (string | { start: string; end?: string })[]
   >([]);
   const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
   const [showPhoneInput, setShowPhoneInput] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [phoneLoading, setPhoneLoading] = useState(false);
   const phoneInputRef = useRef<HTMLInputElement>(null);
 
   const departments = [
@@ -61,6 +56,7 @@ export default function BookAppointment() {
     "Gastroenterology",
     "Endocrinology",
     "Dermatology",
+    "Pediatrics"
   ];
 
   const fetchDoctorsBySpecialization = async (specialization: string) => {
@@ -192,8 +188,8 @@ export default function BookAppointment() {
             Schedule a consultation with our specialists
           </CardDescription>
         </div>
-        <div className="relative">
-          <Button
+        {/*<div className="relative">
+          {<Button
             size="sm"
             variant="outline"
             className="rounded-full p-2 flex items-center gap-2"
@@ -202,7 +198,7 @@ export default function BookAppointment() {
           >
             <Phone className="w-5 h-5" />
             <span className="font-medium">Book via Call</span>
-          </Button>
+          </Button>}
           {showPhoneInput && (
             <div
               ref={phoneInputRef}
@@ -240,7 +236,7 @@ export default function BookAppointment() {
               </Button>
             </div>
           )}
-        </div>
+        </div>*/}
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">

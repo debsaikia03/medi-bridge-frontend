@@ -107,12 +107,13 @@ export default function Overview() {
                 Check Symptoms
               </Button>
               <Button 
-                className="h-20 flex flex-col items-center justify-center text-base font-semibold" 
+                className="h-20 flex flex-col items-center justify-center text-base font-semibold cursor-not-allowed" 
                 variant="outline"
+                disabled
                 onClick={handleHealthAssistant}
               >
                 <MessageSquare className="mb-2 h-6 w-6" />
-                Ask Health Assistant
+                Ask Health Assistant 
               </Button>
               <Button 
                 className="h-20 flex flex-col items-center justify-center text-base font-semibold" 
