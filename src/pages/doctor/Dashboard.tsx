@@ -138,33 +138,60 @@ const saveAvailability = async () => {
       toast.error('Failed to save availability. Please try again.');
     }
   };
+// Error
+  // const updateAppointmentStatus = async (appointmentId: number, newStatus: string) => {
+  //   try {
+  //     await axios.patch('/doctor/appointments/update-status', {
+  //       appointmentId: String(appointmentId),
+  //       stat: newStatus
+  //     });
 
-  const updateAppointmentStatus = async (appointmentId: number, newStatus: string) => {
-    try {
-      await axios.patch('/doctor/appointments/update-status', {
-        appointmentId: String(appointmentId),
-        stat: newStatus
-      });
+  //     setFilteredAppointments(prevAppointments =>
+  //       prevAppointments.map(appointment =>
+  //         appointment.id === appointmentId
+  //           ? { ...appointment, status: newStatus }
+  //           : appointment
+  //       )
+  //     );
 
-      setFilteredAppointments(prevAppointments =>
-        prevAppointments.map(appointment =>
-          appointment.id === appointmentId
-            ? { ...appointment, status: newStatus }
-            : appointment
-        )
-      );
+  //     setAppointmentStatus({
+  //       ...appointmentStatus,
+  //       [appointmentId]: newStatus
+  //     });
 
-      setAppointmentStatus({
-        ...appointmentStatus,
-        [appointmentId]: newStatus
-      });
+  //     toast.success(`Appointment status updated to ${newStatus}`);
+  //   } catch (error) {
+  //     console.error('Error updating appointment status:', error);
+  //     toast.error('Failed to update appointment status. Please try again.');
+  //   }
+  // };
 
-      toast.success(`Appointment status updated to ${newStatus}`);
-    } catch (error) {
-      console.error('Error updating appointment status:', error);
-      toast.error('Failed to update appointment status. Please try again.');
-    }
-  };
+ // Changed
+ const updateAppointmentStatus = async (appointmentId: number, newStatus: string) => {
+  try {
+    await axios.put(`/doctor/appointments/${appointmentId}/status`, {
+      status: newStatus
+    });
+
+    setFilteredAppointments(prevAppointments =>
+      prevAppointments.map(appointment =>
+        appointment.id === appointmentId
+          ? { ...appointment, status: newStatus }
+          : appointment
+      )
+    );
+
+    setAppointmentStatus({
+      ...appointmentStatus,
+      [appointmentId]: newStatus
+    });
+
+    toast.success(`Appointment status updated to ${newStatus}`);
+  } catch (error) {
+    console.error('Error updating appointment status:', error);
+    toast.error('Failed to update appointment status. Please try again.');
+  }
+};
 
   return (
     <div className="container py-8 space-y-8">
