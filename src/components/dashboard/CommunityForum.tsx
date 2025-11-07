@@ -311,11 +311,11 @@ const handleComment = async (postId: string, comment: string, parentCommentId?: 
                     
                     {/* ✅ DISPLAY THE IMAGE */}
                     {post.imageUrl && (
-                      <div className="mb-2 flex flex-col items-center">
+                      <div className="mb-2">
                         <img
                           src={post.imageUrl}
                           alt="Post"
-                          className="rounded-lg border border-muted/30 object-contain max-h-56 w-full bg-black"
+                          className="rounded-lg border border-muted/30 object-contain max-h-56"
                           style={{ cursor: 'pointer' }}
                           onClick={() => setModalImage(post.imageUrl!)}
                         />
