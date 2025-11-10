@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { toast } from 'sonner';
 import axios from '../../lib/axios'; // Keep your existing axios import
+import { useNavigate } from 'react-router-dom';
 
 export default function DiseasePrediction() {
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
@@ -12,6 +13,7 @@ export default function DiseasePrediction() {
   const [loading, setLoading] = useState(false);
   const [prediction, setPrediction] = useState<string | null>(null);
   const [departments, setDepartments] = useState<string[]>([]);
+  const navigate = useNavigate();
 
   // ... (symptoms array remains the same)
   const symptoms = [
@@ -148,6 +150,10 @@ export default function DiseasePrediction() {
     "red_sore_around_nose",
     "yellow_crust_ooze"
   ];
+
+  const handleBookAppointment = () => {
+    navigate('/dashboard?tab=book');
+  };
 
   const toggleSymptom = (symptom: string) => {
     setSelectedSymptoms(prev => 
@@ -315,7 +321,7 @@ export default function DiseasePrediction() {
             <Button variant="outline" onClick={() => { setPrediction(null); setDepartments([]); }}>
               Clear Results
             </Button>
-            <Button>
+            <Button onClick={handleBookAppointment}>
               Book Doctor Appointment
             </Button>
           </CardFooter>

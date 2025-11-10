@@ -159,7 +159,7 @@ export default function Overview() {
             ) : (
               <div className="text-center py-4">
                 <p className="text-muted-foreground">No upcoming appointments</p>
-                <Button className="mt-2" variant="outline">
+                <Button className="mt-2" variant="outline" onClick={handleBookAppointment}>
                   Book Appointment
                 </Button>
               </div>
